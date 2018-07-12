@@ -540,6 +540,70 @@ uint64_t getvoutvalue(unsigned char *txid_str, uint32_t voutNum) {
 
 }
 
+bits256 getverusposhash(bits256 txid, int32_t voutNum, int32_t height) {
+    // bits256 pastHash, int64_t value - we will get inside
+    bits256 res;
+    memset(&res, 0, sizeof(bits256));
+
+    uint32_t ASSETCHAINS_MAGIC = 0xe2588aad;
+    uint32_t COINBASE_MATURITY = 100;
+
+    uint64_t valueSat;
+    uint32_t nHeight, pastBlockIndex;
+    unsigned char tmp[32], pastHash[32];
+    unsigned char tmp_str[65];
+    unsigned char txid_str[65];
+
+    unsigned char verusin[4 + 32 + 4 + 32 + 4]; // ASSETCHAINS_MAGIC, pastHash, height, txid, voutNum
+    unsigned char *ptr;
+    unsigned char verushash[32];
+
+    nHeight = height;
+    pastBlockIndex = nHeight - COINBASE_MATURITY;
+
+    getblockhash(pastBlockIndex, pastHash);
+
+    init_hexbytes_noT(tmp_str, pastHash, 32); reverse_hexstr(tmp_str);
+    //printf("pasthash = %s\n", tmp_str);
+
+    init_hexbytes_noT(txid_str, txid.cbytes, 32); reverse_hexstr(txid_str);
+
+    valueSat = getvoutvalue(txid_str, voutNum);
+    //printf("%" PRIu64 "\n", valueSat);
+
+    /*
+    hashWriter << ASSETCHAINS_MAGIC;  4
+        hashWriter << pastHash;      32
+        hashWriter << height;         4
+        hashWriter << txid;          32
+        hashWriter << voutNum;        4
+         */
+
+    memset(verusin, 0, sizeof(verusin));
+    ptr = verusin;
+    memcpy(ptr,&ASSETCHAINS_MAGIC, sizeof(ASSETCHAINS_MAGIC)); ptr +=sizeof(ASSETCHAINS_MAGIC);
+    memcpy(ptr,pastHash, sizeof(pastHash)); ptr +=sizeof(pastHash);
+    memcpy(ptr,&nHeight, sizeof(nHeight)); ptr +=sizeof(nHeight);
+    memcpy(ptr,txid.cbytes, sizeof(txid.cbytes)); ptr +=sizeof(txid.cbytes);
+    memcpy(ptr,&voutNum, sizeof(voutNum)); ptr +=sizeof(voutNum);
+
+    //dump(verusin, sizeof(verusin));
+
+    memset(verushash, 0, sizeof(verushash));
+    VerusHash(verushash, verusin, sizeof(verusin));
+    //dump(verushash, sizeof(verushash));
+
+    init_hexbytes_noT(tmp_str, verushash, 32); reverse_hexstr(tmp_str);
+    //printf("veruhash = 0x%s\n", tmp_str);
+
+    res = mpz_div64( *((bits256 *)&verushash), valueSat);
+    //dump(res.cbytes, 32);
+    init_hexbytes_noT(tmp_str, res.cbytes, 32); reverse_hexstr(tmp_str);
+    //printf("veruhash = 0x%s\n", tmp_str);
+
+    return res;
+}
+
 int main(int argc, char* argv[])
 {
 
@@ -555,6 +619,9 @@ int main(int argc, char* argv[])
 
     configstruct = get_config(userhome);
 
+    /* VerusHash Check Vector */
+
+    /*
     unsigned char checkdata[] = { 0xc2, 0xa4, 0x00, 0x00, 0xad, 0x8a, 0x58, 0xe2 };
     unsigned char buf[128];
     int i, j;
@@ -565,130 +632,31 @@ int main(int argc, char* argv[])
     VerusHash(buf, checkdata, sizeof(checkdata));
     for (i=0; i < 32; i++) { printf("%02x", buf[i]); } printf("\n");
     printf("b10536cc23e50a2165e7c1dd5ae9a0f072dc963bce52dec2c74173d7f628a837\n");
-
-    /*/* Condition:
-
-if (pastBlockIndex = komodo_chainactive(nHeight - COINBASE_MATURITY))
-    {
-        uint256 pastHash = pastBlockIndex->GetBlockHash();
-
-(UintToArith256(txout.tx->GetVerusPOSHash(txout.i, nHeight, pastHash)) <= target)
-
-    // verus hash will be the same for a given txid, output number, block height, and blockhash of 100 blocks past
-    static uint256 _GetVerusPOSHash(const uint256 &txid, int32_t voutNum, int32_t height, const uint256 &pastHash, int64_t value)
-    {
-        CVerusHashWriter hashWriter  = CVerusHashWriter(SER_GETHASH, PROTOCOL_VERSION);
-
-        hashWriter << ASSETCHAINS_MAGIC;
-        hashWriter << pastHash;
-        hashWriter << height;
-        hashWriter << txid;
-        hashWriter << voutNum;
-        return hashWriter.GetHash();
-    }
-
-    uint256 GetVerusPOSHash(int32_t voutNum, int32_t height, const uint256 &pastHash) const
-    {
-        uint256 txid = GetHash();
-        if (voutNum >= vout.size())
-            return uint256S("ff0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f");
-
-        return ArithToUint256(UintToArith256(_GetVerusPOSHash(txid, voutNum, height, pastHash, (uint64_t)vout[voutNum].nValue)) / vout[voutNum].nValue);
-    }
-
-    ---
-*/
-
-    /* [ WINNER.72820.b9b4deb9d6e485009353608a597325d727c876a705f8994786776fcc203f7abe.0 ] 0000000000033723 000000000004d831
-       [ WINNER.73195.78582a80a16f25570a7208085a6b99a989fe2ba8152b4a602b3ba2a75d1024eb.0 ] 00000000000167e8 000000000003c45c
-
-       0x00000000000167e8d93c4d0a8a01f427056838ff3632d80f9708fca37c89d9bc
-       0x000000000003c45c000000000000000000000000000000000000000000000000
-
-    "value": 1507.97299492,
-    "valueZat": 150797299492,
-    "valueSat": 150797299492,
     */
-
-    uint64_t valueSat = 150797299492;
-    uint32_t ASSETCHAINS_MAGIC = 0xe2588aad;
-    uint32_t COINBASE_MATURITY = 100;
-
-    uint32_t nHeight, pastBlockIndex;
-    unsigned char txid[32], tmp[32], pastHash[32];
-    unsigned char tmp_str[65];
-
-    unsigned char verusin[4 + 32 + 4 + 32 + 4]; // ASSETCHAINS_MAGIC, pastHash, height, txid, voutNum
-    unsigned char *ptr;
-    unsigned char verushash[32];
-
-    unsigned char txid_str[] = "78582a80a16f25570a7208085a6b99a989fe2ba8152b4a602b3ba2a75d1024eb";
-    unsigned char target_str[] = "000000000003c45c000000000000000000000000000000000000000000000000";
-    uint32_t voutNum = 0;
-
-    printf("%" PRIu64 "\n", valueSat);
-
-    printf("COINBASE_MATURITY.%d ASSETCHAINS_MAGIC.%d\n", COINBASE_MATURITY, ASSETCHAINS_MAGIC);
-    printf("txid.%s\n", txid_str);
-
-    memcpy(tmp_str, txid_str, sizeof(tmp_str)); reverse_hexstr(tmp_str); decode_hex(txid, 64, tmp_str); // transform hex txid_str to bytes buffer (txid)
-    dump(txid, 32);
-
-    nHeight = 73195;
-    pastBlockIndex = nHeight - COINBASE_MATURITY;
-    /* pastHash -> pastBlockIndex->GetBlockHash() =
-       72820: 0000000000020e3176bc654f37ae46ced9a7a56c50e136afa4fd63fbf090d6c6
-       72720: d37da99d42eb88514d4b01cf4065b2e66856f8901e7de2593e575fe5a5437d67
-    */
-    getblockhash(pastBlockIndex, pastHash);
-
-    init_hexbytes_noT(tmp_str, pastHash, 32); reverse_hexstr(tmp_str);
-    printf("pasthash = %s\n", tmp_str);
-
-    valueSat = getvoutvalue(txid_str, voutNum);
-    printf("%" PRIu64 "\n", valueSat);
 
     /*
-    hashWriter << ASSETCHAINS_MAGIC;  4
-        hashWriter << pastHash;      32
-        hashWriter << height;         4
-        hashWriter << txid;          32
-        hashWriter << voutNum;        4
-         */
+    [        73195.78582a80a16f25570a7208085a6b99a989fe2ba8152b4a602b3ba2a75d1024eb.0 ] 00000000000167e8 000000000003c45c
+             73154.78582a80a16f25570a7208085a6b99a989fe2ba8152b4a602b3ba2a75d1024eb.0 ] 00000000014b176f 000000000003bd86
+    */
 
-    memset(verusin, 0, sizeof(verusin));
-    ptr = verusin;
-    memcpy(ptr,&ASSETCHAINS_MAGIC, sizeof(ASSETCHAINS_MAGIC)); ptr +=sizeof(ASSETCHAINS_MAGIC);
-    memcpy(ptr,pastHash, sizeof(pastHash)); ptr +=sizeof(pastHash);
-    memcpy(ptr,&nHeight, sizeof(nHeight)); ptr +=sizeof(nHeight);
-    memcpy(ptr,txid, sizeof(txid)); ptr +=sizeof(txid);
-    memcpy(ptr,&voutNum, sizeof(voutNum)); ptr +=sizeof(voutNum);
+    unsigned char tmp_str[65];
+    unsigned char ttxid_str[]   = "78582a80a16f25570a7208085a6b99a989fe2ba8152b4a602b3ba2a75d1024eb";
+    bits256 ttxid;
+    unsigned char ttarget_str[] = "000000000003c45c000000000000000000000000000000000000000000000000";
+    bits256 ttarget;
+    uint32_t nHeight = 73154;
+    uint32_t voutNum = 0;
 
-    dump(verusin, sizeof(verusin));
+    memcpy(tmp_str, ttxid_str, sizeof(tmp_str)); reverse_hexstr(tmp_str); decode_hex(ttxid.cbytes, 64, tmp_str);
+    //dump(ttxid.cbytes, 32);
 
-    memset(verushash, 0, sizeof(verushash));
-    VerusHash(verushash, verusin, sizeof(verusin));
-    dump(verushash, sizeof(verushash));
+    bits256 res = getverusposhash(ttxid, voutNum, nHeight);
 
-    init_hexbytes_noT(tmp_str, verushash, 32); reverse_hexstr(tmp_str);
+    dump(res.cbytes, 32);
+    init_hexbytes_noT(tmp_str, res.cbytes, 32); reverse_hexstr(tmp_str);
     printf("veruhash = 0x%s\n", tmp_str);
 
-    // 0x0070e4a796d184669b4190c2f69b5c8940f5fb32f4b3a4b1dccde2a7f66c0277 / 150797299492 = 0x 3 3723 f8b0 cfdd 69f2 e252 91cc 013d 68a9 6e7d ce45 8d03 9fc4 8345
-
-    union foo { uint16_t i; unsigned char arr[2]; };
-     unsigned char a[2];
-     a[0] = 0; a[1] = 1;
-     union foo u = *((union foo *)&a);
-     //union foo u = (union foo)a;
-     printf("%d\n", u.i);
-
-     bits256 res;
-     res = mpz_div64( *((bits256 *)&verushash), valueSat);
-     dump(res.cbytes, 32);
-     init_hexbytes_noT(tmp_str, res.cbytes, 32); reverse_hexstr(tmp_str);
-      printf("veruhash = 0x%s\n", tmp_str);
-
-     gcurl_cleanup();
+    gcurl_cleanup();
 
     return 0;
 }
