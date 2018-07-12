@@ -2,3 +2,4 @@ depends/
 bin/
 include/
 lib/
+obj/
