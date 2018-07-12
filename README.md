@@ -2,7 +2,7 @@
 
 This is funny tool for VRSC that allows you to know is this a winner between your UTXOs for **next 100** blocks or no.
 
-Don't forget that VERUS_MIN_STAKEAGE = 150 and knowledge about next +100 blocks gives you nothing. Because you can't manipulate txid ... for example, if now nHeight = 1000 (current we are solving block 1000) we can predict winner for [1000..1100] block, but not far. And if you make a tx on 1000 blocks, it starts staking only on 1150 block and there is no prediction for this utxo. Only for next +100 blocks for utxo with depth > 150 (depth = number of confirmations).
+Don't forget that `VERUS_MIN_STAKEAGE` = 150 and knowledge about next +100 blocks gives you nothing. Because you can't manipulate txid ... for example, if now nHeight = 1000 (current we are solving block 1000) we can predict winner for [1000..1100] block, but not far. And if you make a tx on 1000 blocks, it starts staking only on 1150 block and there is no prediction for this utxo. Only for next +100 blocks for utxo with depth > 150 (depth = number of confirmations).
 
 **Usage example:**
 
@@ -44,13 +44,14 @@ But you can add debug printout to source code in `wallet.cpp` to know this numbe
         }
 
 
-### Screenshot
+### Screens
 
 ![](./images/screenshot_01.png) 
+
+![](./images/diagram.jpg) 
 
 ### How to use?
 
 Combine using this tool with bash scripting and parsing json output of daemon. For example you can obtain all of your utxos in format utxo:vout:value and try to make a prediction.
 
-
-See predict.sh example script in repo.
+See `predict.sh` example script in repo.
