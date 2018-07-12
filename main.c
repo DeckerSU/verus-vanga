@@ -13,7 +13,8 @@
 #include <jansson.h>
 #include <curl/curl.h>
 #include <inttypes.h>
-#include "uint256.h"
+#include "common.h"
+#include "mini-gmp.h"
 
 
 
@@ -599,6 +600,10 @@ if (pastBlockIndex = komodo_chainactive(nHeight - COINBASE_MATURITY))
 */
 
     /* [ WINNER.72820.b9b4deb9d6e485009353608a597325d727c876a705f8994786776fcc203f7abe.0 ] 0000000000033723 000000000004d831
+       [ WINNER.73195.78582a80a16f25570a7208085a6b99a989fe2ba8152b4a602b3ba2a75d1024eb.0 ] 00000000000167e8 000000000003c45c
+
+       0x00000000000167e8d93c4d0a8a01f427056838ff3632d80f9708fca37c89d9bc
+       0x000000000003c45c000000000000000000000000000000000000000000000000
 
     "value": 1507.97299492,
     "valueZat": 150797299492,
@@ -617,7 +622,8 @@ if (pastBlockIndex = komodo_chainactive(nHeight - COINBASE_MATURITY))
     unsigned char *ptr;
     unsigned char verushash[32];
 
-    unsigned char txid_str[] = "b9b4deb9d6e485009353608a597325d727c876a705f8994786776fcc203f7abe";
+    unsigned char txid_str[] = "78582a80a16f25570a7208085a6b99a989fe2ba8152b4a602b3ba2a75d1024eb";
+    unsigned char target_str[] = "000000000003c45c000000000000000000000000000000000000000000000000";
     uint32_t voutNum = 0;
 
     printf("%" PRIu64 "\n", valueSat);
@@ -628,7 +634,7 @@ if (pastBlockIndex = komodo_chainactive(nHeight - COINBASE_MATURITY))
     memcpy(tmp_str, txid_str, sizeof(tmp_str)); reverse_hexstr(tmp_str); decode_hex(txid, 64, tmp_str); // transform hex txid_str to bytes buffer (txid)
     dump(txid, 32);
 
-    nHeight = 72820;
+    nHeight = 73195;
     pastBlockIndex = nHeight - COINBASE_MATURITY;
     /* pastHash -> pastBlockIndex->GetBlockHash() =
        72820: 0000000000020e3176bc654f37ae46ced9a7a56c50e136afa4fd63fbf090d6c6
@@ -669,9 +675,20 @@ if (pastBlockIndex = komodo_chainactive(nHeight - COINBASE_MATURITY))
 
     // 0x0070e4a796d184669b4190c2f69b5c8940f5fb32f4b3a4b1dccde2a7f66c0277 / 150797299492 = 0x 3 3723 f8b0 cfdd 69f2 e252 91cc 013d 68a9 6e7d ce45 8d03 9fc4 8345
 
+    union foo { uint16_t i; unsigned char arr[2]; };
+     unsigned char a[2];
+     a[0] = 0; a[1] = 1;
+     union foo u = *((union foo *)&a);
+     //union foo u = (union foo)a;
+     printf("%d\n", u.i);
 
+     bits256 res;
+     res = mpz_div64( *((bits256 *)&verushash), valueSat);
+     dump(res.cbytes, 32);
+     init_hexbytes_noT(tmp_str, res.cbytes, 32); reverse_hexstr(tmp_str);
+      printf("veruhash = 0x%s\n", tmp_str);
 
-    gcurl_cleanup();
+     gcurl_cleanup();
 
     return 0;
 }
