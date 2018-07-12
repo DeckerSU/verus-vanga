@@ -30,10 +30,35 @@
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
+			<Add option="-std=c++0x" />
+			<Add option="-mavx2 -maes -fpermissive" />
+			<Add directory="include" />
 		</Compiler>
+		<Linker>
+			<Add library="curl" />
+			<Add library="crypto" />
+			<Add library="pthread" />
+			<Add library="ssl" />
+			<Add library="z" />
+			<Add library="jansson" />
+			<Add directory="lib" />
+		</Linker>
+		<Unit filename="common.h" />
+		<Unit filename="haraka.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="haraka.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="mini-gmp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="mini-gmp.h" />
+		<Unit filename="stuff.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="stuff.h" />
 		<Extensions>
 			<envvars />
 			<code_completion />
