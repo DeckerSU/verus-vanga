@@ -668,6 +668,28 @@ bits256 getverusposhash_value(bits256 txid, int32_t voutNum, int32_t height, int
     return res;
 }
 
+/* if hash < target returns 1 */
+int fulltest(const unsigned char *ihash, const unsigned char *itarget)
+{
+	int i;
+	int rc = 1;
+
+	uint32_t *hash = (uint32_t *)ihash;
+	uint32_t *target = (uint32_t *)itarget;
+
+	for (i = 7; i >= 0; i--) {
+		if (hash[i] > target[i]) {
+			rc = 0;
+			break;
+		}
+		if (hash[i] < target[i]) {
+			rc = 1;
+			break;
+		}
+	}
+	return rc;
+}
+
 int main(int argc, char* argv[])
 {
 
@@ -714,23 +736,23 @@ int main(int argc, char* argv[])
     uint32_t voutNum;
     uint64_t nValue;
 
-    printf(YELLOW "VerusVanga " RESET "by " GREEN "Decker" RESET " v0.01 alpha\n");
-    printf("Usage: ./verus-vanga <txid> <voutnum> <height> <value> <target>\n\n");
+    fprintf(stderr, YELLOW "VerusVanga " RESET "by " GREEN "Decker" RESET " v0.01 alpha\n");
+    fprintf(stderr, "Usage: ./verus-vanga <txid> <voutnum> <height> <value> <target>\n\n");
     // ./verus-vanga 78582a80a16f25570a7208085a6b99a989fe2ba8152b4a602b3ba2a75d1024eb 0 73154 150797299492 000000000003c45c000000000000000000000000000000000000000000000000
 
     if (argc !=6 ) {
-        printf("Error in params ...\n");
+        fprintf(stderr, "Error in params ...\n");
         return(-1);
     }
 
-    if (strlen(argv[1]) != 64) { printf("Error: Invalid txid\n"); return(-1); }
-    if (strlen(argv[5]) != 64) { printf("Error: Invalid target\n"); return(-1); }
+    if (strlen(argv[1]) != 64) { fprintf(stderr, "Error: Invalid txid\n"); return(-1); }
+    if (strlen(argv[5]) != 64) { fprintf(stderr, "Error: Invalid target\n"); return(-1); }
 
-    printf("  txid: %s\n", argv[1]);
-    printf("  vout: %d\n", atol(argv[2]));
-    printf("height: %d\n", atol(argv[3]));
-    printf(" value: %" PRIu64 "\n", atoll(argv[4]));
-    printf("target: %s\n", argv[5]);
+    fprintf(stderr, "  txid: %s\n", argv[1]);
+    fprintf(stderr, "  vout: %d\n", atol(argv[2]));
+    fprintf(stderr, "height: %d\n", atol(argv[3]));
+    fprintf(stderr, " value: %" PRIu64 "\n", atoll(argv[4]));
+    fprintf(stderr, "target: %s\n", argv[5]);
 
     strncpy(ttxid_str, argv[1], 65);
     voutNum = atol(argv[2]);
@@ -739,11 +761,13 @@ int main(int argc, char* argv[])
     strncpy(ttarget_str, argv[5], 65);
     //ttxid_str[64] = 0; ttarget_str[64] = 0;
 
-    printf("  txid: %s\n", ttxid_str);
+    //fprintf(stderr, "  txid: %s\n", ttxid_str);
 
 
     memcpy(tmp_str, ttxid_str, sizeof(tmp_str)); reverse_hexstr(tmp_str); decode_hex(ttxid.cbytes, 64, tmp_str);
-    dump(ttxid.cbytes, 32);
+    //dump(ttxid.cbytes, 32);
+    memcpy(tmp_str, ttarget_str, sizeof(tmp_str)); reverse_hexstr(tmp_str); decode_hex(ttarget.cbytes, 64, tmp_str);
+    //dump(ttarget.cbytes, 32);
 
     bits256 res;
 
@@ -757,9 +781,19 @@ int main(int argc, char* argv[])
 
     res = getverusposhash_value(ttxid, voutNum, nHeight, nValue); // value from external, for createrawtx
     //dump(res.cbytes, 32);
-    init_hexbytes_noT(tmp_str, res.cbytes, 32); reverse_hexstr(tmp_str); printf("veruhash = 0x%s\n", tmp_str);
+    init_hexbytes_noT(tmp_str, res.cbytes, 32); reverse_hexstr(tmp_str); fprintf(stderr, "  hash: %s\n", tmp_str);
 
     gcurl_cleanup();
 
+    //dump(res.cbytes, 32);
+    //dump(ttarget.cbytes, 32);
+
+    if (fulltest(res.cbytes, ttarget.cbytes)) {
+      fprintf(stderr, "\n");
+      printf("{\"result\":%d}\n", nHeight);
+      return 1;
+    }
+    fprintf(stderr, "\n");
+    printf("{\"result\":%d}\n", 0);
     return 0;
 }
