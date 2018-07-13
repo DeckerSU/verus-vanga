@@ -402,6 +402,7 @@ int32_t decode_hex(unsigned char *bytes,int32_t n,char *hex)
         hex[--n] = 0;
     if ( hex[n-1] == '\n' || hex[n-1] == '\r' )
         hex[--n] = 0;
+
     if ( n == 0 || (hex[n*2+1] == 0 && hex[n*2] != 0) )
     {
         if ( n > 0 )
@@ -484,7 +485,7 @@ void getblockhash(uint32_t nHeight, unsigned char *hash) {
                 //printf(GREEN "%s\n" RESET,json_string_value(j_result));
                 memcpy(tmp_str, json_string_value(j_result), sizeof(tmp_str));
                 reverse_hexstr(tmp_str);
-                decode_hex(hash, 64, tmp_str);
+                decode_hex(hash, 32, tmp_str);
             }
             json_decref(j_root);
     }
@@ -801,9 +802,9 @@ int main(int argc, char* argv[])
     //fprintf(stderr, "  txid: %s\n", ttxid_str);
 
 
-    memcpy(tmp_str, ttxid_str, sizeof(tmp_str)); reverse_hexstr(tmp_str); decode_hex(ttxid.cbytes, 64, tmp_str);
+    memcpy(tmp_str, ttxid_str, sizeof(tmp_str)); reverse_hexstr(tmp_str); decode_hex(ttxid.cbytes, 32, tmp_str);
     //dump(ttxid.cbytes, 32);
-    memcpy(tmp_str, ttarget_str, sizeof(tmp_str)); reverse_hexstr(tmp_str); decode_hex(ttarget.cbytes, 64, tmp_str);
+    memcpy(tmp_str, ttarget_str, sizeof(tmp_str)); reverse_hexstr(tmp_str); decode_hex(ttarget.cbytes, 32, tmp_str);
     //dump(ttarget.cbytes, 32);
 
     bits256 res;
@@ -820,6 +821,12 @@ int main(int argc, char* argv[])
     //dump(res.cbytes, 32);
     init_hexbytes_noT(tmp_str, res.cbytes, 32); reverse_hexstr(tmp_str); fprintf(stderr, "  hash: %s\n", tmp_str);
 
+//    for (int i=-100; i < 100; i++) {
+//        res = getverusposhash(ttxid, voutNum, nHeight + i); // value from blockchain, for existing tx
+//        //dump(res.cbytes, 32);
+//        init_hexbytes_noT(tmp_str, res.cbytes, 32); reverse_hexstr(tmp_str); printf("i.%03d [%03d] veruhash = 0x%s\n", nHeight+i, i, tmp_str);
+//    }
+
     gcurl_cleanup();
 
     //dump(res.cbytes, 32);
@@ -835,6 +842,16 @@ int main(int argc, char* argv[])
 
     // Example to know timelock to ...
     // printf("Timelock = %d", komodo_block_unlocktime(74332)); // 296349
+
+
+    /*
+    unsigned char test[] = "e92118b9e28e8ba2aec121f66f4bbe72667ef43497ae7756bae6020000000000";
+    unsigned char testbuf[32];
+    //memset(testbuf, 0, 32);
+    decode_hex(testbuf, 32, test);
+    printf("s[%d] = %s\n", strlen(test), test);
+    dump(testbuf,32);
+    */
 
     return 0;
 }
