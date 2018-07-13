@@ -16,6 +16,8 @@
 #include "common.h"
 #include "mini-gmp.h"
 
+#define G_ASSETCHAINS_MAGIC 0xe2588aad
+
 
 
 /*
@@ -545,7 +547,7 @@ bits256 getverusposhash(bits256 txid, int32_t voutNum, int32_t height) {
     bits256 res;
     memset(&res, 0, sizeof(bits256));
 
-    uint32_t ASSETCHAINS_MAGIC = 0xe2588aad;
+    uint32_t ASSETCHAINS_MAGIC = G_ASSETCHAINS_MAGIC;
     uint32_t COINBASE_MATURITY = 100;
 
     uint64_t valueSat;
@@ -609,7 +611,7 @@ bits256 getverusposhash_value(bits256 txid, int32_t voutNum, int32_t height, int
     bits256 res;
     memset(&res, 0, sizeof(bits256));
 
-    uint32_t ASSETCHAINS_MAGIC = 0xe2588aad;
+    uint32_t ASSETCHAINS_MAGIC = G_ASSETCHAINS_MAGIC;
     uint32_t COINBASE_MATURITY = 100;
 
     uint64_t valueSat;
@@ -689,6 +691,41 @@ int fulltest(const unsigned char *ihash, const unsigned char *itarget)
 	}
 	return rc;
 }
+
+
+uint64_t komodo_block_prg(uint32_t nHeight)
+{
+
+        uint32_t ASSETCHAINS_MAGIC = G_ASSETCHAINS_MAGIC;
+        uint64_t i, result = 0, hashSrc64 = ((uint64_t)ASSETCHAINS_MAGIC << 32) | (uint64_t)nHeight;
+        uint8_t hashSrc[8];
+        bits256 hashResult;
+
+        for ( i = 0; i < sizeof(hashSrc); i++ )
+        {
+            uint64_t x = hashSrc64 >> (i * 8);
+            hashSrc[i] = (uint8_t)(x & 0xff);
+        }
+        //verus_hash(hashResult.bytes, hashSrc, sizeof(hashSrc));
+        VerusHash(hashResult.bytes, hashSrc, sizeof(hashSrc));
+        for ( i = 0; i < 8; i++ )
+        {
+            result = (result << 8) | hashResult.bytes[i];
+        }
+        return result;
+}
+
+int64_t komodo_block_unlocktime(uint32_t nHeight)
+{
+    uint64_t fromTime, toTime, unlocktime;
+    uint32_t ASSETCHAINS_TIMEUNLOCKTO = 1180800;
+    uint32_t ASSETCHAINS_TIMEUNLOCKFROM = 129600;
+
+    unlocktime = komodo_block_prg(nHeight) % (ASSETCHAINS_TIMEUNLOCKTO - ASSETCHAINS_TIMEUNLOCKFROM);
+    unlocktime += ASSETCHAINS_TIMEUNLOCKFROM;
+    return ((int64_t)unlocktime);
+}
+
 
 int main(int argc, char* argv[])
 {
@@ -795,5 +832,9 @@ int main(int argc, char* argv[])
     }
     fprintf(stderr, "\n");
     printf("{\"result\":%d}\n", 0);
+
+    // Example to know timelock to ...
+    // printf("Timelock = %d", komodo_block_unlocktime(74332)); // 296349
+
     return 0;
 }
